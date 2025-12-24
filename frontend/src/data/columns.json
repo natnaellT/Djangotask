@@ -1,0 +1,4 @@
+{
+  "numeric": ["size", "bedrooms", "age"],
+  "target": "price"
+}
