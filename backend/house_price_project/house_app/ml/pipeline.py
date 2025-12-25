@@ -72,6 +72,9 @@ def train_and_evaluate():
     preprocessor = model.named_steps['preprocessor']
     scaler = preprocessor.named_transformers_['num']  # Extract StandardScaler
     joblib.dump(scaler, SCALER_PATH)
+    
+    # Clear the model cache so new predictions use the updated model
+    clear_model_cache()
 
     import json
 
@@ -91,6 +94,12 @@ def train_and_evaluate():
 
 
 _MODEL_CACHE: Pipeline | None = None
+
+
+def clear_model_cache():
+    """Clear the cached model so it will be reloaded from disk"""
+    global _MODEL_CACHE
+    _MODEL_CACHE = None
 
 
 def load_model():
