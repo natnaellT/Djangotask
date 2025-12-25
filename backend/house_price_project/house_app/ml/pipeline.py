@@ -11,12 +11,13 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import LinearRegression
 
-BASE_DIR = Path(__file__).resolve().parents[2]
+BASE_DIR = Path(__file__).resolve().parents[3]  # Go up to backend/
 DATA_DIR = BASE_DIR / "data"
-MODELS_DIR = BASE_DIR / "models"
+MODELS_DIR = BASE_DIR / "house_price_project" / "models"
 
 DATASET_PATH = DATA_DIR / "houses.csv"
 MODEL_PATH = MODELS_DIR / "latest_model.joblib"
+SCALER_PATH = MODELS_DIR / "latest_scaler.joblib"
 METRICS_PATH = MODELS_DIR / "latest_metrics.json"
 COLUMNS_PATH = MODELS_DIR / "columns.json"
 
@@ -63,7 +64,14 @@ def train_and_evaluate():
     mae = float(mean_absolute_error(y_val, y_pred))
     r2 = float(r2_score(y_val, y_pred))
 
+    # Save the complete model pipeline (includes scaler + regressor)
     joblib.dump(model, MODEL_PATH)
+    
+    # Extract and save the scaler separately
+    # The scaler is in the preprocessor step of the pipeline
+    preprocessor = model.named_steps['preprocessor']
+    scaler = preprocessor.named_transformers_['num']  # Extract StandardScaler
+    joblib.dump(scaler, SCALER_PATH)
 
     import json
 
@@ -78,6 +86,7 @@ def train_and_evaluate():
         "r2": r2,
         "rows": int(len(df)),
         "model_path": str(MODEL_PATH),
+        "scaler_path": str(SCALER_PATH),
     }
 
 
@@ -87,6 +96,11 @@ _MODEL_CACHE: Pipeline | None = None
 def load_model():
     global _MODEL_CACHE
     if _MODEL_CACHE is None:
+        if not MODEL_PATH.exists():
+            raise FileNotFoundError(
+                f"Model file not found at {MODEL_PATH}. "
+                "Please train the model first by calling train_and_evaluate() or triggering training via API."
+            )
         _MODEL_CACHE = joblib.load(MODEL_PATH)
     return _MODEL_CACHE
 
@@ -94,8 +108,10 @@ def load_model():
 def predict_price(features):
     model = load_model()
     numeric_features = ["size", "bedrooms", "age"]
-    x = np.array(
-        [[float(features["size"]), float(features["bedrooms"]), float(features["age"])]]
+    # Convert to DataFrame (ColumnTransformer needs DataFrame, not numpy array)
+    x = pd.DataFrame(
+        [[float(features["size"]), float(features["bedrooms"]), float(features["age"])]],
+        columns=numeric_features
     )
     pred = model.predict(x)[0]
     return float(round(pred, 2))

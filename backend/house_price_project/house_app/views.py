@@ -17,15 +17,26 @@ def predict_price_view(request):
         size = float(data.get("size"))
         bedrooms = float(data.get("bedrooms"))
         age = float(data.get("age"))
-    except Exception:
-        return JsonResponse({"detail": "Invalid payload"}, status=400)
+    except (ValueError, TypeError, AttributeError) as e:
+        return JsonResponse({"detail": f"Invalid payload: {str(e)}"}, status=400)
+    except Exception as e:
+        return JsonResponse({"detail": f"Invalid request: {str(e)}"}, status=400)
 
-    features = {"size": size, "bedrooms": bedrooms, "age": age}
-    price = predict_price(features)
-
-    PredictionLog.objects.create(payload=features, predicted_price=price)
-
-    return JsonResponse({"predicted_price": price})
+    try:
+        features = {"size": size, "bedrooms": bedrooms, "age": age}
+        price = predict_price(features)
+        PredictionLog.objects.create(payload=features, predicted_price=price)
+        return JsonResponse({"predicted_price": price})
+    except FileNotFoundError as e:
+        return JsonResponse(
+            {"detail": "Model not trained yet. Please train the model first."}, 
+            status=503
+        )
+    except Exception as e:
+        return JsonResponse(
+            {"detail": f"Prediction failed: {str(e)}"}, 
+            status=500
+        )
 
 
 def model_status(request):

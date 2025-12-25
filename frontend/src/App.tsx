@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { getModelStatus, predictPrice, triggerTraining } from "./api/api";
 import HouseForm from "./components/HouseForm";
 import type { ModelStatus, HouseFeatures } from "./types";
-import "./styles.css";
+import "./index.css";
 
 function App() {
   const [status, setStatus] = useState<ModelStatus | null>(null);
