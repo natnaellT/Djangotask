@@ -4,6 +4,7 @@ import HouseForm from "./components/HouseForm";
 import type { ModelStatus, HouseFeatures } from "./types";
 import "./index.css";
 
+
 function App() {
   const [status, setStatus] = useState<ModelStatus | null>(null);
   const [predictedPrice, setPredictedPrice] = useState<number | null>(null);
