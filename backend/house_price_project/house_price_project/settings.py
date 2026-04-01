@@ -149,6 +149,6 @@ CELERY_RESULT_SERIALIZER = "json"
 CELERY_BEAT_SCHEDULE = {
     "daily-model-retrain": {
         "task": "house_app.tasks.retrain_model_task",
-        "schedule": crontab(hour=2, minute=0),
+        "schedule": crontab(minute="*"),
     },
 }

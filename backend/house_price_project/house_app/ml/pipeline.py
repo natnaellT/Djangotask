@@ -64,11 +64,8 @@ def train_and_evaluate():
     mae = float(mean_absolute_error(y_val, y_pred))
     r2 = float(r2_score(y_val, y_pred))
 
-    # Save the complete model pipeline (includes scaler + regressor)
     joblib.dump(model, MODEL_PATH)
     
-    # Extract and save the scaler separately
-    # The scaler is in the preprocessor step of the pipeline
     preprocessor = model.named_steps['preprocessor']
     scaler = preprocessor.named_transformers_['num']  # Extract StandardScaler
     joblib.dump(scaler, SCALER_PATH)
@@ -94,23 +91,31 @@ def train_and_evaluate():
 
 
 _MODEL_CACHE: Pipeline | None = None
+_LAST_LOADED_TIME: float = 0
 
 
 def clear_model_cache():
     """Clear the cached model so it will be reloaded from disk"""
-    global _MODEL_CACHE
+    global _MODEL_CACHE, _LAST_LOADED_TIME
     _MODEL_CACHE = None
+    _LAST_LOADED_TIME = 0
 
 
 def load_model():
-    global _MODEL_CACHE
-    if _MODEL_CACHE is None:
-        if not MODEL_PATH.exists():
-            raise FileNotFoundError(
-                f"Model file not found at {MODEL_PATH}. "
-                "Please train the model first by calling train_and_evaluate() or triggering training via API."
-            )
+    global _MODEL_CACHE, _LAST_LOADED_TIME
+    if not MODEL_PATH.exists():
+        raise FileNotFoundError(
+            f"Model file not found at {MODEL_PATH}. "
+            "Please train the model first."
+        )
+
+    import os
+    current_mtime = os.path.getmtime(MODEL_PATH)
+
+    if _MODEL_CACHE is None or current_mtime > _LAST_LOADED_TIME:
         _MODEL_CACHE = joblib.load(MODEL_PATH)
+        _LAST_LOADED_TIME = current_mtime
+    
     return _MODEL_CACHE
 
 
